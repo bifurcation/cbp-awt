@@ -1,0 +1,24 @@
+name: Update with the latest data from CBP
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  rsync:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Fetch and analyze the data
+      run: |
+        node getData.js >data.js
+
+    - name: Commit the data back to the repository
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: 'data.js'
+        author_name: Data Updater Bot
+        author_email: rlb+awt@ipv.sx
+        message: 'Update with latest data'
