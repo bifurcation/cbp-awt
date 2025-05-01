@@ -1,0 +1,58 @@
+<!doctype html5>
+<html>
+
+<head>
+<title>CBP Passenger Volume</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+<script src="./data.js"></script>
+<script>
+
+async function go() {
+  let airports = data.map(row => Object.keys(row.nonUS))
+                     .flat()
+                     .filter((val, i, arr) => arr.indexOf(val) === i);
+  let datasets = airports.map(code => {
+    return { 
+      label: code, 
+      data: data.map(row => row.nonUS[code]),
+      pointStyle: false,
+      borderWidth: 1,
+    };
+  });
+
+  let canvas = document.getElementById('acquisitions');
+
+  new Chart(
+    canvas,
+    {
+      type: 'line',
+      data: {
+        labels: data.map(row => row.date),
+        datasets,
+      },
+      options: {
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: 'CBP international arrivals (y/y, 30-day moving average)'
+          }
+        }
+      }
+    }
+  );
+}
+
+window.onload = go;
+
+</script>
+</head>
+
+<body>
+<div style="height: 100%"><canvas style="width: 100%" id="acquisitions"></canvas></div>
+</body>
+
+</html>
