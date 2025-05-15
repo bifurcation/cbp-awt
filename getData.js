@@ -28,7 +28,7 @@ async function loadAirport(code, fromDate, toDate) {
     "FromDate":"${fromStr}",
     "ToDate":"${toStr}"
   }`;
-  
+
   const response = await fetch(AWT_API, {
     method: "POST",
     body: requestBody,
@@ -37,7 +37,7 @@ async function loadAirport(code, fromDate, toDate) {
 
   const responseBody = await response.json();
   const rows = responseBody.Items;
-  
+
   // Compute totals per day
   let totalNonUS = {};
   for (let row of rows) {
@@ -45,9 +45,11 @@ async function loadAirport(code, fromDate, toDate) {
     totalNonUS[row["FlightDate"]] += row["NonUsaPassengerCount"];
   }
 
-  // Compute 30-day moving average
-  const dates = uniq(rows.map(row => row["FlightDate"]));
+  return totalNonUS;
+}
 
+function movingAverageYoY(dates, totalNonUS) {
+  // Compute moving average
   let movingAverage = {};
   for (let date of dates) {
     let range = dates.filter(d => {
@@ -62,7 +64,7 @@ async function loadAirport(code, fromDate, toDate) {
     movingAverage[date] = range.map(d => totalNonUS[d]).reduce((a, b) => a + b);
     movingAverage[date] /= range.length;
   }
-  
+
   // Compute year-on-year change
   let yearOnYear = {};
   for (let date of dates) {
@@ -89,12 +91,63 @@ async function loadAirport(code, fromDate, toDate) {
 }
 
 const airports = [
+  // Original small set
+  /*
   "JFK",
   "MIA",
   "EWR",
   "LAX",
   "ORD",
   "HNL",
+  */
+
+  // All available airports
+  "ATL",
+  "AUS",
+  "BNA",
+  "BOS",
+  "BWI",
+  "CLT",
+  "CVG",
+  "DEN",
+  "DFW",
+  "DTW",
+  "EWR",
+  "FAT",
+  "FLL",
+  "GUM",
+  "HNL",
+  "IAD",
+  "IAH",
+  "JFK",
+  "LAS",
+  "LAX",
+  "MCO",
+  "MDW",
+  "MIA",
+  "MSP",
+  "OAK",
+  "ONT",
+  "ORD",
+  "PBI",
+  "PDX",
+  "PHL",
+  "PHX",
+  "PVD",
+  "RDU",
+  "SAN",
+  "SAT",
+  "SEA",
+  "SFB",
+  "SFO",
+  "SJC",
+  "SJU",
+  "SLC",
+  "SMF",
+  "SNA",
+  "SPN",
+  "STL",
+  "TPA",
 ];
 
 const end = new Date();
@@ -108,10 +161,33 @@ for (let code of airports) {
 
 const dates = uniq(Object.keys(datasets).map(code => Object.keys(datasets[code])).flat());
 
-const data = dates.map(date => {
-  let nonUS = {};
+// Compute total series
+const totalDataset = {};
+for (let date of dates) {
   for (let code in datasets) {
-    nonUS[code] = datasets[code][date];
+    if (!datasets[code][date]) {
+      continue;
+    }
+
+    totalDataset[date] = totalDataset[date] || 0;
+    totalDataset[date] += datasets[code][date];
+  }
+}
+
+datasets["total"] = totalDataset;
+
+// Compute YoY change in moving average
+const series = {};
+for (let code in datasets) {
+  series[code] = movingAverageYoY(dates, datasets[code]);
+}
+
+// Render data in a format that the plotting library likes
+const seriesDates = uniq(Object.keys(series).map(code => Object.keys(series[code])).flat());
+const data = seriesDates.map(date => {
+  let nonUS = {};
+  for (let code in series) {
+    nonUS[code] = series[code][date];
   }
 
   return { date: toISO(new Date(date)), nonUS };

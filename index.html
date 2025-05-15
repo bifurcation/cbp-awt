@@ -12,12 +12,22 @@ async function go() {
                      .flat()
                      .filter((val, i, arr) => arr.indexOf(val) === i);
   let datasets = airports.map(code => {
-    return { 
-      label: code, 
+    let opts = {
+      label: code,
       data: data.map(row => row.nonUS[code]),
       pointStyle: false,
       borderWidth: 1,
+      hidden: true,
+      borderColor: "#999",
     };
+
+    if (code == "total") {
+      opts.hidden = false;
+      opts.borderWidth = 2;
+      opts.borderColor = "#000";
+    }
+
+    return opts;
   });
 
   let canvas = document.getElementById('acquisitions');
@@ -31,10 +41,6 @@ async function go() {
         datasets,
       },
       options: {
-        interaction: {
-          intersect: false,
-          mode: 'index',
-        },
         plugins: {
           title: {
             display: true,
